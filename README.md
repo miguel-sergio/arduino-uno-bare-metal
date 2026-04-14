@@ -1,84 +1,173 @@
-# Arduino UNO (ATmega328P) - Bare-Metal
+# Start Here - Toolchain Setup and Blinky
 
-A collection of bare-metal Arduino UNO R3 projects designed to help you get started in embedded systems by programming the ATmega328P directly at register level, without Arduino abstractions.
+Your first bare-metal project. No Arduino library, no abstractions. Just C, registers and the ATmega328P datasheet.
 
-<p align="center">
-  <img src="docs/assets/arduino-uno-board.png" alt="Arduino UNO R3" width="45%" />
-  &nbsp;&nbsp;
-  <img src="docs/assets/ATmega328P-mcu.png" alt="ATmega328P" width="45%" />
-</p>
+By the end of this project you will know how to install the AVR toolchain, compile a C program manually, flash it to the board and control a GPIO pin at register level.
 
-This repository follows an incremental approach. Each project builds on the previous one, adding new peripherals and concepts progressively. You can navigate to any project using git tags and find the complete state up to that point.
+---
 
-```bash
-# Example: checkout the state at Blinky project
-git checkout 01-blinky
-```
+## What you will learn
 
-## Requirements
+- How to install the AVR toolchain on your machine.
+- What registers are and how to read them from the datasheet.
+- How to configure a GPIO pin as output.
+- How to compile and flash a bare-metal program manually.
 
-**Hardware:**
-- Arduino UNO (or compatible ATmega328P board).
-- USB cable (Type A to Type B).
-- Jumper wires and a breadboard (for external circuits).
+---
 
-**Software:**
-- avr-gcc (AVR toolchain).
-- avrdude (for flashing).
-- make (from project 13 onward).
-- A terminal and VS Code.
+## Part 1 - Toolchain Setup
 
-**Knowledge:**
-- Basic C programming.
-- Comfortable using the terminal.
+You need two tools: a cross-compiler for AVR and a flash programmer.
 
-## Documentation
+- **avr-gcc**: the C compiler for AVR microcontrollers.
+- **avrdude**: the tool that sends your program to the board over USB.
 
-Keep these open while working through the projects. You will reference them constantly.
-
-**ATmega328P Datasheet** (Microchip)
-- The main reference for registers, peripherals, memory map and electrical specs.
-- [docs/ATmega328P-datasheet.pdf](docs/ATmega328P-datasheet.pdf)
-
-**Arduino UNO R3 Datasheet**
-- Board-level reference: power, pin mapping and electrical characteristics.
-- [docs/Arduino-UNO-datasheet.pdf](docs/Arduino-UNO-datasheet.pdf)
-
-**Arduino UNO R3 Pinout**
-- Quick visual reference for pin mapping between the ATmega328P and the board headers.
-- [docs/Arduino-UNO-pinout.pdf](docs/Arduino-UNO-pinout.pdf)
-
-## Projects
-
-This collection grows project by project. Each entry links to a brief description of what you will learn.
-
-| # | Topic | Tag |
-|---|-------|-----|
-| - | - | - |
-
-## Getting Started
-
-1. Clone the repository:
+**macOS:**
 
 ```bash
-git clone https://github.com/miguelsergio/arduino-uno-bare-metal.git
-cd arduino-uno-bare-metal
+brew tap osx-cross/avr
+brew install avr-gcc avrdude
 ```
 
-2. List all available projects:
+**Linux (Debian/Ubuntu):**
 
 ```bash
-git tag -l "[0-9]*"
+sudo apt update
+sudo apt install gcc-avr avrdude
 ```
 
-3. Checkout a specific project:
+**Windows (native):**
+
+Install [MSYS2](https://www.msys2.org), then open the MSYS2 UCRT64 terminal and run:
 
 ```bash
-git checkout 01-blinky
+pacman -S mingw-w64-ucrt-x86_64-avr-gcc mingw-w64-ucrt-x86_64-avrdude
 ```
 
-4. Follow the instructions in the README for that project's tag.
+All commands in this project must be run from the MSYS2 UCRT64 terminal.
 
-## License
+Verify the installation:
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+```bash
+avr-gcc --version
+avrdude -v
+```
+
+---
+
+## Part 2 - Blinky
+
+The classic first embedded program. Toggle the built-in LED on and off every 500 ms.
+
+The built-in LED on the Arduino UNO R3 is connected to **pin 13**, which maps to **PB5** (Port B, bit 5) on the ATmega328P.
+
+![Arduino UNO R3 - pin 13 and built-in LED](docs/assets/blinky-pin13-led.png)
+
+Open the ATmega328P datasheet and find the **I/O-Ports** chapter. You will see three registers for each port:
+
+- **DDRx**: Data Direction Register. Controls whether a pin is input (0) or output (1).
+
+- **PORTx**: Output register. Sets a pin HIGH (1) or LOW (0) when configured as output.
+
+- **PINx**: Input register. Reads the current state of a pin.
+
+![ATmega328P datasheet - DDRB, PORTB and PINB registers](docs/assets/blinky-port-registers.png)
+
+To blink the LED on PB5:
+1. Set bit 5 of DDRB to 1 (configure PB5 as output).
+2. Set bit 5 of PORTB to 1 (LED ON).
+3. Wait 500 ms.
+4. Clear bit 5 of PORTB to 0 (LED OFF).
+5. Repeat.
+
+**The code:**
+
+```c
+/* ATmega328P register addresses */
+#define DDRB   (*(volatile unsigned char *)0x24)
+#define PORTB  (*(volatile unsigned char *)0x25)
+
+/* Busy-loop delay: wastes CPU cycles to approximate a delay in ms.
+ * 800 is the closest value found visually for 1 ms at 16 MHz.
+ * A timer-based delay will replace this in a later project. */
+static void delay_ms(unsigned int ms) {
+    for (unsigned int i = 0; i < ms; i++) {
+        for (volatile unsigned int j = 0; j < 800; j++);
+    }
+}
+
+int main(void) {
+    DDRB |= (1U << 5); /* PB5 as output */
+
+    while (1) {
+        PORTB |= (1U << 5); /* LED ON  */
+        delay_ms(500);
+
+        PORTB &= ~(1U << 5); /* LED OFF */
+        delay_ms(500);
+    }
+
+    return 0;
+}
+```
+
+**Understanding the implementation:**
+
+`#define DDRB (*(volatile unsigned char *)0x24)` - maps the name DDRB to memory address 0x24, which is where the ATmega328P stores Port B's direction register. The `volatile` keyword tells the compiler this memory can change at any time (hardware writes it), so it must never cache or optimize it away. The cast to `unsigned char *` and the dereference `*` let you read and write it like a regular variable.
+
+`DDRB |= (1U << 5)` - read-modify-write pattern. It sets bit 5 without touching the other bits in DDRB. Never assign directly (`DDRB = (1U << 5)`) unless you intend to configure all 8 pins at once.
+
+`PORTB |= (1U << 5)` - sets bit 5 HIGH (LED ON). Same read-modify-write pattern.
+
+`PORTB &= ~(1U << 5)` - clears bit 5 LOW (LED OFF). The `~` operator inverts the mask so only bit 5 is cleared, leaving the rest untouched.
+
+`delay_ms()` - wastes CPU cycles to approximate a delay in ms. 800 is the closest value found visually for 1 ms at 16 MHz. A timer-based delay will replace this in a later project.
+
+---
+
+## Compile
+
+From the project root, run these commands:
+
+```bash
+# 1. Compile to ELF
+avr-gcc -mmcu=atmega328p -Os -o main.elf src/main.c
+
+# 2. Convert ELF to HEX (the format avrdude expects)
+avr-objcopy -O ihex main.elf main.hex
+```
+
+- `-mmcu=atmega328p`: target MCU.
+- `-Os`: optimize for size.
+
+---
+
+## Flash
+
+Connect the Arduino UNO via USB. Find the serial port:
+
+**macOS:**
+
+```bash
+ls /dev/tty.usbmodem*
+```
+
+**Linux:**
+
+```bash
+ls /dev/ttyACM*
+```
+
+**Windows:**
+
+Open Device Manager and look under **Ports (COM & LPT)**. You will see something like `USB Serial Device (COM3)`.
+
+Then flash:
+
+```bash
+avrdude -c arduino -p atmega328p -P /dev/tty.usbmodemXXXX -b 115200 -U flash:w:main.hex
+```
+
+Replace `/dev/tty.usbmodemXXXX` with your actual port. On Linux use `/dev/ttyACM0`. On Windows use `COMX` (e.g. `COM3`).
+
+The built-in LED should start blinking once flashing is complete.
