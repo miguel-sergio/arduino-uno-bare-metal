@@ -11,8 +11,8 @@ A collection of bare-metal Arduino UNO R3 projects designed to help you get star
 This repository follows an incremental approach. Each project builds on the previous one, adding new peripherals and concepts progressively. You can navigate to any project using git tags and find the complete state up to that point.
 
 ```bash
-# Example: checkout the state at Blinky project
-git checkout 01-blinky
+# Example: checkout the start-here project
+git checkout 00-start-here
 ```
 
 ## Requirements
@@ -54,7 +54,7 @@ This collection grows project by project. Each entry links to a brief descriptio
 
 | # | Topic | Tag |
 |---|-------|-----|
-| - | - | - |
+| 00 | Toolchain setup and Blinky | `00-start-here` |
 
 ## Getting Started
 
@@ -74,7 +74,7 @@ git tag -l "[0-9]*"
 3. Checkout a specific project:
 
 ```bash
-git checkout 01-blinky
+git checkout 00-start-here
 ```
 
 4. Follow the instructions in the README for that project's tag.
