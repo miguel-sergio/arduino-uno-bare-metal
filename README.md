@@ -2,6 +2,12 @@
 
 A collection of bare-metal Arduino UNO R3 projects designed to help you get started in embedded systems by programming the ATmega328P directly at register level, without Arduino abstractions.
 
+<p align="center">
+  <img src="docs/assets/arduino-uno-board.png" alt="Arduino UNO R3" width="45%" />
+  &nbsp;&nbsp;
+  <img src="docs/assets/ATmega328P-mcu.png" alt="ATmega328P" width="45%" />
+</p>
+
 This repository follows an incremental approach. Each project builds on the previous one, adding new peripherals and concepts progressively. You can navigate to any project using git tags and find the complete state up to that point.
 
 ```bash
@@ -25,6 +31,22 @@ git checkout 01-blinky
 **Knowledge:**
 - Basic C programming.
 - Comfortable using the terminal.
+
+## Documentation
+
+Keep these open while working through the projects. You will reference them constantly.
+
+**ATmega328P Datasheet** (Microchip)
+- The main reference for registers, peripherals, memory map and electrical specs.
+- [docs/ATmega328P-datasheet.pdf](docs/ATmega328P-datasheet.pdf)
+
+**Arduino UNO R3 Datasheet**
+- Board-level reference: power, pin mapping and electrical characteristics.
+- [docs/Arduino-UNO-datasheet.pdf](docs/Arduino-UNO-datasheet.pdf)
+
+**Arduino UNO R3 Pinout**
+- Quick visual reference for pin mapping between the ATmega328P and the board headers.
+- [docs/Arduino-UNO-pinout.pdf](docs/Arduino-UNO-pinout.pdf)
 
 ## Projects
 
